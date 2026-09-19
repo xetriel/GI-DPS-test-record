@@ -1,0 +1,115 @@
+// datasource and client definition
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// CORE RUN MODEL
+// -------------------------------------------------------------
+model DpsRun {
+  id                  String               @id @default(uuid()) @db.VarChar(36)
+  stageGuid           String?              @map("stage_guid") @db.VarChar(64)
+  uid                 String?              @db.VarChar(32)
+  testPreset          String               @map("test_preset") @db.VarChar(64) // e.g., "Abyss 12"
+  dps                 Int                  // e.g., 143554
+  timeElapsedSeconds  Decimal              @map("time_elapsed_seconds") @db.Decimal(6, 2) // e.g., 115.83
+  totalDamage         Decimal              @map("total_damage") @db.Decimal(16, 0) // e.g., 16627852
+  strongestHit        Int                  @map("strongest_hit") // e.g., 358600
+  
+  // Target Dummy Metadata
+  targetName          String               @map("target_name") @db.VarChar(64) // e.g., "Mitachurl"
+  targetLevel         Int                  @default(100) @map("target_level")
+  
+  // Resistance Profile stored as normalized JSON
+  // { "pyro": 10, "hydro": 10, "electro": 10, "cryo": 10, "anemo": 10, "geo": 10, "dendro": 10, "physical": 10 }
+  targetResistances   Json                 @map("target_resistances")
+
+  // Version Control & Metadata
+  gameVersion         String               @default("7.0") @map("game_version") @db.VarChar(16)
+  imageUrl            String               @map("image_url") @db.VarChar(512)
+  verified            Boolean              @default(false)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  // Relations
+  characters          RunCharacter[]
+  rotations           RunRotation[]
+  elementalBreakdowns RunElementalShare[]
+
+  @@index([testPreset])
+  @@index([gameVersion])
+  @@index([dps])
+  @@index([createdAt])
+  @@map("dps_runs")
+}
+
+// -------------------------------------------------------------
+// PARTY MEMBER STATS & CONTRIBUTION
+// -------------------------------------------------------------
+model RunCharacter {
+  id               BigInt   @id @default(autoincrement())
+  runId            String   @map("run_id") @db.VarChar(36)
+  slotOrder        Int      @map("slot_order") @db.TinyInt // 1 to 4
+  name             String   @db.VarChar(64) // e.g., "Varesa", "Mavuika"
+  level            Int      @default(90)
+  damageDealt      Decimal  @map("damage_dealt") @db.Decimal(14, 0)
+  damagePercent    Int      @map("damage_percent") // e.g., 45, 50
+
+  // Base & Calculated Attributes
+  hp               Int
+  baseAtk          Int      @map("base_atk")
+  atk              Int
+  baseDef          Int      @map("base_def")
+  def              Int
+  critRate         Decimal  @map("crit_rate") @db.Decimal(5, 1) // e.g., 60.0%
+  critDamage       Decimal  @map("crit_damage") @db.Decimal(6, 1) // e.g., 251.0%
+  energyRecharge   Decimal  @map("energy_recharge") @db.Decimal(5, 1) // e.g., 134.0%
+  elementalMastery Int      @default(0) @map("elemental_mastery")
+
+  // Dynamic Element Damage Bonus Array/Map
+  // e.g., { "electroDmg": 47.0 } or { "pyroDmg": 47.0 }
+  damageBonuses    Json?    @map("damage_bonuses")
+
+  run              DpsRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+  @@index([runId])
+  @@map("run_characters")
+}
+
+// -------------------------------------------------------------
+// ROTATION CHRONOLOGY
+// -------------------------------------------------------------
+model RunRotation {
+  id              BigInt   @id @default(autoincrement())
+  runId           String   @map("run_id") @db.VarChar(36)
+  rotationNumber  Int      @map("rotation_number") @db.SmallInt // 1, 2, 3...
+  dps             Int      // e.g., 161000
+  damageDealt     Decimal  @map("damage_dealt") @db.Decimal(14, 0) // e.g., 3065636
+  durationSeconds Decimal  @map("duration_seconds") @db.Decimal(6, 2) // e.g., 19.05
+
+  run             DpsRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, rotationNumber])
+  @@map("run_rotations")
+}
+
+// -------------------------------------------------------------
+// ELEMENTAL DAMAGE DISTRIBUTION BREAKDOWN
+// -------------------------------------------------------------
+model RunElementalShare {
+  id         BigInt  @id @default(autoincrement())
+  runId      String  @map("run_id") @db.VarChar(36)
+  element    String  @db.VarChar(16) // Pyro, Hydro, Electro, Cryo, Anemo, Geo, Dendro, Physical
+  percentage Int     // 0 to 100
+
+  run        DpsRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, element])
+  @@map("run_elemental_shares")
+}

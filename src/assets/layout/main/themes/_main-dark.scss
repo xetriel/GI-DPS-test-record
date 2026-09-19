@@ -1,0 +1,50 @@
+// Theme Dark
+
+// Variables
+
+$app-container-bg-dark: #0b0f19;
+$app-sidebar-bg-dark: #0e1222;
+$app-header-bg-dark: #11162a;
+$app-header-logo-bg-dark: #0e1222;
+$app-card-bg-dark: #151b32;
+$app-footer-bg-dark: #0e1222;
+
+// Content
+
+.app-theme-dark {
+  &.app-container {
+    background: $app-container-bg-dark;
+    color: #e2e8f0;
+  }
+
+  .app-sidebar {
+    background: $app-sidebar-bg-dark;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .app-page-title {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+  }
+
+  .app-footer,
+  .app-footer .app-footer__inner {
+    background: $app-footer-bg-dark;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    color: #94a3b8;
+  }
+
+  .app-header {
+    background: $app-header-bg-dark;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  &.fixed-header {
+    .app-header__logo {
+      background: $app-header-logo-bg-dark;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+  }
+}
