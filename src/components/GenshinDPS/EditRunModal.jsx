@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -15,31 +15,36 @@ import {
   NavLink,
 } from 'reactstrap';
 
+function createFormDataFromRun(run) {
+  if (!run) return null;
+  return {
+    teamName: run.teamName || '',
+    notes: run.notes || '',
+    characters: (run.characters || []).map((c) => ({
+      ...c,
+      constellation: c.constellation !== undefined ? c.constellation : 0,
+      weaponName: c.weaponName || '',
+      weaponRefinement: c.weaponRefinement !== undefined ? c.weaponRefinement : 1,
+      artifacts: c.artifacts || '',
+      buildLabel: c.buildLabel || '',
+      notes: c.notes || '',
+    })),
+    rotations: (run.rotations || []).map((r) => ({
+      ...r,
+      notes: r.notes || '',
+    })),
+  };
+}
+
 export default function EditRunModal({ isOpen, toggle, run, onSave, isSaving = false }) {
   const [activeTab, setActiveTab] = useState('notes'); // 'notes' | 'characters' | 'rotations'
-  const [formData, setFormData] = useState(null);
+  const [prevRun, setPrevRun] = useState(run);
+  const [formData, setFormData] = useState(() => createFormDataFromRun(run));
 
-  useEffect(() => {
-    if (run) {
-      setFormData({
-        teamName: run.teamName || '',
-        notes: run.notes || '',
-        characters: (run.characters || []).map((c) => ({
-          ...c,
-          constellation: c.constellation !== undefined ? c.constellation : 0,
-          weaponName: c.weaponName || '',
-          weaponRefinement: c.weaponRefinement !== undefined ? c.weaponRefinement : 1,
-          artifacts: c.artifacts || '',
-          buildLabel: c.buildLabel || '',
-          notes: c.notes || '',
-        })),
-        rotations: (run.rotations || []).map((r) => ({
-          ...r,
-          notes: r.notes || '',
-        })),
-      });
-    }
-  }, [run]);
+  if (run !== prevRun) {
+    setPrevRun(run);
+    setFormData(createFormDataFromRun(run));
+  }
 
   if (!formData) return null;
 

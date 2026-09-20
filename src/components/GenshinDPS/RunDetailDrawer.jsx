@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Chart from 'react-apexcharts';
 import ElementalBadge from './ElementalBadge';
-import { getCharacterElement, getBuildLabels } from './TopContributorsBar';
+import { getCharacterElement, getBuildLabels } from '../../utils/characterUtils';
 import EditRunModal from './EditRunModal';
 
 function formatNumber(num) {

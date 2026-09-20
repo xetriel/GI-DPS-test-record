@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ExtractionSchema } from '../schemas/extractionSchema.js';
 import { auditTelemetry, commitRun, updateRun, getAllRuns } from './telemetryService.js';
 import { REFERENCE_COMBAT_TELEMETRY } from './visionParser.js';
-import { getBuildLabels } from '../../components/GenshinDPS/TopContributorsBar.jsx';
+import { getBuildLabels } from '../../utils/characterUtils.js';
 
 describe('GenshinDPS Telemetry & Extraction Suite', () => {
   it('validates the reference combat screenshot telemetry with strict Zod schema', () => {
