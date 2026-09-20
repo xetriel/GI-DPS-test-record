@@ -34,6 +34,7 @@ export default function Main() {
       <ThemeOptions />
       <div ref={ref}>
         <div
+          data-testid="app-shell"
           className={cx(
             'app-container',
             themeClass,
