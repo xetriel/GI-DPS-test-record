@@ -1,0 +1,22 @@
+// Modals
+
+.modal-content {
+  background-color: var(--bs-modal-bg, #151b32);
+  color: var(--bs-modal-color, #e2e8f0);
+}
+
+.modal-header,
+.modal-footer {
+  background: var(--bs-modal-header-bg, #11162a);
+  border-color: var(--bs-modal-border-color, rgba(255, 255, 255, 0.08));
+  color: var(--bs-modal-color, #f8fafc);
+}
+
+.modal-footer {
+  @include border-bottom-radius($border-radius);
+}
+
+.modal-dialog {
+  box-shadow: $box-shadow-lg-default;
+  @include border-radius($border-radius);
+}

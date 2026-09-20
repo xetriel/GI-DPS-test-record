@@ -7,6 +7,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/.playwright/
 
 # next.js
 /.next/
@@ -34,3 +37,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify (knowledge graph & codebase architecture)
+# Ignore local caches, machine-specific paths, and temporary extraction artifacts
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/cost.json
+# OCR & uploads
+*.traineddata
+uploads/
+prompts/
