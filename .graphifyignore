@@ -1,0 +1,39 @@
+# ==============================================================================
+# .graphifyignore - Graphify Knowledge Graph Index Scoping
+# ==============================================================================
+# Scopes the knowledge graph index to capture ONLY custom business logic,
+# data states, and core routing, excluding integrated template boilerplate.
+
+# ------------------------------------------------------------------------------
+# 1. Template Demo Pages (ArchitectUI / Bootstrap Boilerplate)
+# ------------------------------------------------------------------------------
+src/DemoPages/Applications/
+src/DemoPages/Charts/
+src/DemoPages/Components/
+src/DemoPages/Dashboards/
+src/DemoPages/Elements/
+src/DemoPages/Forms/
+src/DemoPages/Tables/
+src/DemoPages/Widgets/
+src/DemoPages/routes.jsx
+
+# ------------------------------------------------------------------------------
+# 2. Template Static Assets (Stock photos, sample avatars, SCSS styles)
+# ------------------------------------------------------------------------------
+src/assets/
+
+# ------------------------------------------------------------------------------
+# 3. Unused Template Component Widgets
+# ------------------------------------------------------------------------------
+src/components/CircleProgress.jsx
+src/components/LiquidGauge.jsx
+src/components/Loader.jsx
+src/components/ResponsiveTabs/
+src/components/Sparklines/
+
+# ------------------------------------------------------------------------------
+# 4. Build Tooling & Legacy Overrides
+# ------------------------------------------------------------------------------
+config-overrides.js
+patch-finddomnode.js
+startlog.txt
