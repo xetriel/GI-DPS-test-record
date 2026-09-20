@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Chart from 'react-apexcharts';
 import ElementalBadge from './ElementalBadge';
-import { getCharacterElement } from './TopContributorsBar';
+import { getCharacterElement, getBuildLabels } from './TopContributorsBar';
+import EditRunModal from './EditRunModal';
 
 function formatNumber(num) {
   return Number(num || 0).toLocaleString();
@@ -14,14 +15,53 @@ function formatDamage(val) {
   return num.toLocaleString();
 }
 
-export default function RunDetailDrawer({ run, isOpen, onClose }) {
+function formatDateTime(dateStr) {
+  if (!dateStr) return 'N/A';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return (
+      d.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }) +
+      ' ' +
+      d.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    );
+  } catch {
+    return String(dateStr);
+  }
+}
+
+export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
   const [activeTab, setActiveTab] = useState('builds'); // 'builds' | 'rotations' | 'proof'
   const [zoomLevel, setZoomLevel] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen || !run) return null;
+
+  const handleSaveEdit = async (formData) => {
+    try {
+      setIsSaving(true);
+      if (onUpdateRun) {
+        await onUpdateRun(run.id, formData);
+      }
+      setIsEditOpen(false);
+    } catch (err) {
+      alert('Failed to update run: ' + (err.message || err));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // ApexCharts series & options for Rotation Cadence
   const rotations = [...(run.rotations || [])].sort((a, b) => a.rotationNumber - b.rotationNumber);
@@ -134,26 +174,45 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
           style={{ background: '#0e1222', borderBottomColor: 'rgba(255, 255, 255, 0.08)' }}
         >
           <div>
-            <div className="d-flex align-items-center gap-2 mb-1">
+            <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
               <span className="badge bg-warning text-dark fw-bold">
                 {run.testPreset}
               </span>
               <span className="badge bg-dark text-white">
                 v{run.gameVersion}
               </span>
-              <h5 className="m-0 fw-bold">Combat Telemetry Deep-Dive</h5>
+              <h5 className="m-0 fw-bold text-white">
+                {run.teamName || 'Combat Telemetry Deep-Dive'}
+              </h5>
             </div>
-            <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-              Run ID: <span className="font-monospace">{run.id}</span> | Target: {run.targetName} Lv.{run.targetLevel}
+            <div className="text-muted d-flex align-items-center gap-2 flex-wrap" style={{ fontSize: '0.78rem' }}>
+              <span>Run ID: <span className="font-monospace">{run.id}</span></span>
+              <span>•</span>
+              <span>Target: {run.targetName} Lv.{run.targetLevel}</span>
+              <span>•</span>
+              <span>📅 Added: <span className="font-monospace text-body-secondary">{formatDateTime(run.createdAt)}</span></span>
+              <span>•</span>
+              <span>✏️ Modified: <span className="font-monospace text-body-secondary">{formatDateTime(run.updatedAt || run.createdAt)}</span></span>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn-close"
-            aria-label="Close"
-            onClick={onClose}
-          />
+          <div className="d-flex align-items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 shadow-sm"
+              onClick={() => setIsEditOpen(true)}
+              title="Manually edit team name, weapons, artifacts, constellations, refinements, and notes"
+            >
+              <span>✏️</span>
+              <span className="d-none d-sm-inline">Edit Team & Builds</span>
+            </button>
+            <button
+              type="button"
+              className="btn-close"
+              aria-label="Close"
+              onClick={onClose}
+            />
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -188,6 +247,38 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
 
         {/* Tab Content */}
         <div className="p-3 p-md-4 flex-grow-1 overflow-auto">
+          {/* Full Note Inspection Card */}
+          {run.notes && (
+            <div
+              className="p-3 mb-4 rounded border shadow-sm"
+              style={{
+                background: 'rgba(56, 189, 248, 0.08)',
+                borderColor: 'rgba(56, 189, 248, 0.25)',
+              }}
+            >
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="fs-5">🔔</span>
+                  <h6 className="fw-bold m-0 text-info">Combat Telemetry Notes & Observations</h6>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge bg-info text-dark fw-bold">Full Note Inspection</span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-info py-0 px-2"
+                    style={{ fontSize: '0.72rem' }}
+                    onClick={() => setIsEditOpen(true)}
+                  >
+                    Edit Note
+                  </button>
+                </div>
+              </div>
+              <p className="m-0 text-light" style={{ fontSize: '0.88rem', whiteSpace: 'pre-wrap', lineHeight: '1.55' }}>
+                {run.notes}
+              </p>
+            </div>
+          )}
+
           {/* TAB 1: Complete Party Builds */}
           {activeTab === 'builds' && (
             <div>
@@ -203,6 +294,7 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
               <div className="row g-3">
                 {run.characters.map((char) => {
                   const elem = getCharacterElement(char.name, char.damageBonuses);
+                  const labels = getBuildLabels(char);
                   return (
                     <div key={char.name} className="col-12 col-md-6 col-xl-3">
                       <div
@@ -214,13 +306,54 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
                           style={{ background: 'rgba(255,255,255,0.03)', borderBottomColor: 'rgba(255, 255, 255, 0.08)' }}
                         >
                           <div>
-                            <div className="fw-bold fs-6 text-body-emphasis">{char.name}</div>
+                            <div className="d-flex align-items-center gap-1 mb-1">
+                              {labels.map((lbl, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`badge ${
+                                    lbl.includes('C') && lbl.includes('R')
+                                      ? 'bg-warning-subtle text-warning border border-warning-subtle'
+                                      : lbl.startsWith('C')
+                                      ? 'bg-warning text-dark'
+                                      : 'bg-info text-dark'
+                                  } fw-bold`}
+                                  style={{ fontSize: '0.68rem', padding: '0.2em 0.4em' }}
+                                >
+                                  {lbl}
+                                </span>
+                              ))}
+                              <span className="fw-bold fs-6 text-body-emphasis">{char.name}</span>
+                            </div>
                             <span className="text-muted" style={{ fontSize: '0.75rem' }}>Lv. {char.level}</span>
                           </div>
                           <ElementalBadge element={elem} />
                         </div>
 
                         <div className="p-3">
+                          {/* Weapons & Artifacts Sheet */}
+                          <div
+                            className="p-2 mb-3 rounded border"
+                            style={{ background: 'rgba(255, 255, 255, 0.03)', borderColor: 'rgba(255, 255, 255, 0.08)', fontSize: '0.78rem' }}
+                          >
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                              <span className="text-muted fw-bold" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Equipped Weapon</span>
+                              <span className="badge bg-dark text-info">
+                                R{char.weaponRefinement || 1}
+                              </span>
+                            </div>
+                            <div className="fw-bold text-light mb-1 text-truncate" title={char.weaponName || 'Unspecified'}>
+                              ⚔️ {char.weaponName || 'Weapon Unspecified'}
+                            </div>
+                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Artifacts</div>
+                            <div className="text-secondary text-truncate" title={char.artifacts || 'Unspecified'}>
+                              🛡️ {char.artifacts || 'Artifacts Unspecified'}
+                            </div>
+                            {char.notes && (
+                              <div className="mt-1 pt-1 border-top border-secondary text-muted" style={{ fontSize: '0.72rem' }}>
+                                📝 {char.notes}
+                              </div>
+                            )}
+                          </div>
                           {/* Damage share */}
                           <div
                             className="p-2 mb-3 rounded border text-center"
@@ -298,6 +431,61 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
           {/* TAB 2: Rotation Cadence */}
           {activeTab === 'rotations' && (
             <div>
+              {/* Party Equipment Overview in Rotation Feature */}
+              <div
+                className="p-3 mb-4 rounded border shadow-sm"
+                style={{ background: 'rgba(255, 255, 255, 0.03)', borderColor: 'rgba(255, 255, 255, 0.08)' }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="fw-bold m-0 text-secondary text-uppercase" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>
+                    ⚔️ Party Equipment & Artifact Configurations in Rotation
+                  </h6>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary py-0 px-2"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={() => setIsEditOpen(true)}
+                  >
+                    Edit Builds
+                  </button>
+                </div>
+                <div className="row g-2">
+                  {run.characters.map((c) => {
+                    const labels = getBuildLabels(c);
+                    return (
+                      <div key={c.name} className="col-12 col-md-6 col-xl-3">
+                        <div className="p-2 rounded bg-dark border border-secondary d-flex flex-column gap-1" style={{ fontSize: '0.78rem' }}>
+                          <div className="d-flex align-items-center gap-1">
+                            {labels.map((lbl, idx) => (
+                              <span
+                                key={idx}
+                                className={`badge ${
+                                  lbl.includes('C') && lbl.includes('R')
+                                    ? 'bg-warning-subtle text-warning border border-warning-subtle'
+                                    : lbl.startsWith('C')
+                                    ? 'bg-warning text-dark'
+                                    : 'bg-info text-dark'
+                                } fw-bold`}
+                                style={{ fontSize: '0.66rem' }}
+                              >
+                                {lbl}
+                              </span>
+                            ))}
+                            <strong className="text-white">{c.name}</strong>
+                          </div>
+                          <div className="text-secondary text-truncate" title={c.weaponName || 'Weapon Unset'}>
+                            ⚔️ {c.weaponName || 'Weapon Unset'} (R{c.weaponRefinement || 1})
+                          </div>
+                          <div className="text-muted text-truncate" title={c.artifacts || 'Artifacts Unset'}>
+                            🛡️ {c.artifacts || 'Artifacts Unset'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="card shadow-sm p-3 mb-4">
                 <Chart
                   options={apexChartOptions}
@@ -307,18 +495,30 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
                 />
               </div>
 
-              <h6 className="fw-bold mb-3 text-secondary text-uppercase" style={{ fontSize: '0.85rem' }}>
-                Cycle Breakdowns
-              </h6>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="fw-bold m-0 text-secondary text-uppercase" style={{ fontSize: '0.85rem' }}>
+                  Cycle Breakdowns & Execution Notes
+                </h6>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-info py-0 px-2"
+                  style={{ fontSize: '0.75rem' }}
+                  onClick={() => setIsEditOpen(true)}
+                >
+                  Edit Rotation Notes
+                </button>
+              </div>
+
               <div className="table-responsive">
                 <table className="table table-hover align-middle">
                   <thead>
                     <tr>
-                      <th>Rotation #</th>
-                      <th>DPS</th>
-                      <th>Damage Dealt</th>
-                      <th>Cycle Duration</th>
-                      <th>Cycle DPS Rating</th>
+                      <th style={{ width: '100px' }}>Rotation #</th>
+                      <th style={{ width: '110px' }}>DPS</th>
+                      <th style={{ width: '120px' }}>Damage Dealt</th>
+                      <th style={{ width: '100px' }}>Cycle Duration</th>
+                      <th>Rotation Execution Notes / Combo</th>
+                      <th style={{ width: '130px' }}>Cycle DPS Rating</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -339,7 +539,17 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
                           {Number(r.durationSeconds).toFixed(2)}s
                         </td>
                         <td>
-                          <div className="progress" style={{ height: '6px', width: '120px' }}>
+                          {r.notes ? (
+                            <div className="d-flex align-items-center gap-1.5 text-light" style={{ fontSize: '0.82rem' }}>
+                              <span>⚡</span>
+                              <span>{r.notes}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted small fst-italic">No rotation notes set</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="progress" style={{ height: '6px', width: '110px' }}>
                             <div
                               className="progress-bar bg-success"
                               style={{ width: `${Math.min(100, (r.dps / (run.dps * 1.3)) * 100)}%` }}
@@ -404,14 +614,32 @@ export default function RunDetailDrawer({ run, isOpen, onClose }) {
           className="p-3 border-top d-flex justify-content-between align-items-center"
           style={{ background: '#0e1222', borderTopColor: 'rgba(255, 255, 255, 0.08)' }}
         >
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-            Stage GUID: <strong className="font-monospace text-light">{run.stageGuid}</strong> | UID: <strong className="font-monospace text-light">{run.uid}</strong>
-          </span>
+          <div className="d-flex align-items-center gap-3">
+            <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+              Stage GUID: <strong className="font-monospace text-light">{run.stageGuid}</strong> | UID: <strong className="font-monospace text-light">{run.uid}</strong>
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-info"
+              onClick={() => setIsEditOpen(true)}
+            >
+              ✏️ Edit Builds & Notes
+            </button>
+          </div>
           <button className="btn btn-secondary px-4" onClick={onClose}>
             Close Inspection
           </button>
         </div>
       </div>
+
+      {/* Manual Input / Edit Modal */}
+      <EditRunModal
+        isOpen={isEditOpen}
+        toggle={() => setIsEditOpen(false)}
+        run={run}
+        onSave={handleSaveEdit}
+        isSaving={isSaving}
+      />
     </>
   );
 }

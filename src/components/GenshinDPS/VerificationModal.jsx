@@ -53,12 +53,13 @@ export default function VerificationModal({
     // 1. dps_runs
     sql += `-- 1. Core Run Summary\n`;
     sql += `INSERT INTO \`dps_runs\` (\n`;
-    sql += `  \`id\`, \`stage_guid\`, \`uid\`, \`test_preset\`, \`dps\`,\n`;
+    sql += `  \`id\`, \`team_name\`, \`stage_guid\`, \`uid\`, \`test_preset\`, \`dps\`,\n`;
     sql += `  \`time_elapsed_seconds\`, \`total_damage\`, \`strongest_hit\`,\n`;
     sql += `  \`target_name\`, \`target_level\`, \`target_resistances\`,\n`;
-    sql += `  \`gameVersion\`, \`image_url\`, \`verified\`, \`created_at\`, \`updated_at\`\n`;
+    sql += `  \`gameVersion\`, \`image_url\`, \`verified\`, \`notes\`, \`created_at\`, \`updated_at\`\n`;
     sql += `) VALUES (\n`;
     sql += `  @RUN_ID,\n`;
+    sql += `  '${(formData.teamName || sum.teamName || '').replace(/'/g, "''")}',\n`;
     sql += `  ${meta.stageGuid ? `'${meta.stageGuid}'` : 'NULL'},\n`;
     sql += `  ${meta.uid ? `'${meta.uid}'` : 'NULL'},\n`;
     sql += `  '${(sum.testPreset || 'Abyss 12').replace(/'/g, "''")}',\n`;
@@ -72,6 +73,7 @@ export default function VerificationModal({
     sql += `  '7.0',\n`;
     sql += `  '${(imageUrl || '/uploads/combat-run.png').replace(/'/g, "''")}',\n`;
     sql += `  1,\n`;
+    sql += `  '${(formData.notes || sum.notes || '').replace(/'/g, "''")}',\n`;
     sql += `  NOW(3),\n`;
     sql += `  NOW(3)\n`;
     sql += `);\n\n`;
@@ -81,13 +83,14 @@ export default function VerificationModal({
       sql += `-- 2. Party Members\n`;
       sql += `INSERT INTO \`run_characters\` (\n`;
       sql += `  \`run_id\`, \`slot_order\`, \`name\`, \`level\`, \`damage_dealt\`, \`damage_percent\`,\n`;
+      sql += `  \`constellation\`, \`weapon_name\`, \`weapon_refinement\`, \`artifacts\`, \`build_label\`, \`notes\`,\n`;
       sql += `  \`hp\`, \`base_atk\`, \`atk\`, \`base_def\`, \`def\`, \`crit_rate\`, \`crit_damage\`,\n`;
       sql += `  \`energy_recharge\`, \`elemental_mastery\`, \`damage_bonuses\`\n`;
       sql += `) VALUES\n`;
       const charValues = chars.map((c, idx) => {
         const stats = c.stats || {};
         const bonuses = JSON.stringify(stats.damageBonuses || {});
-        return `(\n  @RUN_ID, ${idx + 1}, '${(c.name || 'Character').replace(/'/g, "''")}', ${Number(c.level) || 90}, ${Number(c.damageDealt) || 0}, ${Number(c.damagePercent) || 0},\n  ${Number(stats.hp) || 0}, ${Number(stats.baseAtk) || 0}, ${Number(stats.atk) || 0}, ${Number(stats.baseDef) || 0}, ${Number(stats.def) || 0},\n  ${Number(stats.critRate) || 0}, ${Number(stats.critDamage) || 0}, ${Number(stats.energyRecharge) || 0}, ${Number(stats.elementalMastery) || 0},\n  '${bonuses.replace(/'/g, "''")}'\n)`;
+        return `(\n  @RUN_ID, ${idx + 1}, '${(c.name || 'Character').replace(/'/g, "''")}', ${Number(c.level) || 90}, ${Number(c.damageDealt) || 0}, ${Number(c.damagePercent) || 0},\n  ${c.constellation ?? 0}, '${(c.weaponName || '').replace(/'/g, "''")}', ${c.weaponRefinement ?? 1}, '${(c.artifacts || '').replace(/'/g, "''")}', '${(c.buildLabel || '').replace(/'/g, "''")}', '${(c.notes || '').replace(/'/g, "''")}',\n  ${Number(stats.hp) || 0}, ${Number(stats.baseAtk) || 0}, ${Number(stats.atk) || 0}, ${Number(stats.baseDef) || 0}, ${Number(stats.def) || 0},\n  ${Number(stats.critRate) || 0}, ${Number(stats.critDamage) || 0}, ${Number(stats.energyRecharge) || 0}, ${Number(stats.elementalMastery) || 0},\n  '${bonuses.replace(/'/g, "''")}'\n)`;
       });
       sql += charValues.join(',\n') + ';\n\n';
     }
@@ -95,9 +98,9 @@ export default function VerificationModal({
     // 3. run_rotations
     if (rots.length > 0) {
       sql += `-- 3. Rotations\n`;
-      sql += `INSERT INTO \`run_rotations\` (\`run_id\`, \`rotation_number\`, \`dps\`, \`damage_dealt\`, \`duration_seconds\`) VALUES\n`;
+      sql += `INSERT INTO \`run_rotations\` (\`run_id\`, \`rotation_number\`, \`dps\`, \`damage_dealt\`, \`duration_seconds\`, \`notes\`) VALUES\n`;
       const rotValues = rots.map((r, idx) => {
-        return `(@RUN_ID, ${r.rotationNumber || idx + 1}, ${Number(r.dps) || 0}, ${Number(r.damageDealt) || 0}, ${Number(r.durationSeconds) || 0})`;
+        return `(@RUN_ID, ${r.rotationNumber || idx + 1}, ${Number(r.dps) || 0}, ${Number(r.damageDealt) || 0}, ${Number(r.durationSeconds) || 0}, '${(r.notes || '').replace(/'/g, "''")}')`;
       });
       sql += rotValues.join(',\n') + ';\n\n';
     }
@@ -369,6 +372,27 @@ export default function VerificationModal({
               <div>
                 <h6 className="fw-bold border-bottom pb-1 text-primary">Combat Summary Metrics</h6>
                 <Row className="g-2 mb-3">
+                  <Col md={12}>
+                    <FormGroup>
+                      <Label className="small text-muted fw-bold">🏷️ Team Setup Name</Label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Zibai Premium, Neuvillette Hypercarry, Raiden National..."
+                        value={formData.teamName || formData.testSummary?.teamName || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            teamName: val,
+                            testSummary: {
+                              ...prev.testSummary,
+                              teamName: val,
+                            },
+                          }));
+                        }}
+                      />
+                    </FormGroup>
+                  </Col>
                   <Col md={6}>
                     <FormGroup>
                       <Label className="small text-muted fw-bold">Test Preset</Label>
@@ -457,7 +481,7 @@ export default function VerificationModal({
                 </Row>
 
                 <h6 className="fw-bold border-bottom pb-1 text-primary mt-3">Watermark Identification</h6>
-                <Row className="g-2">
+                <Row className="g-2 mb-3">
                   <Col md={6}>
                     <FormGroup>
                       <Label className="small text-muted fw-bold">Stage GUID</Label>
@@ -479,6 +503,25 @@ export default function VerificationModal({
                     </FormGroup>
                   </Col>
                 </Row>
+
+                <h6 className="fw-bold border-bottom pb-1 text-primary mt-3">Combat Notes & Observations</h6>
+                <FormGroup>
+                  <Label className="small text-muted fw-bold">Run Notes (Shown as notification on card &amp; full inspection)</Label>
+                  <Input
+                    type="textarea"
+                    rows={3}
+                    value={formData.notes || formData.testSummary?.notes || ''}
+                    placeholder="Enter test observations, rotation sequence notes, buff setup..."
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        notes: val,
+                        testSummary: { ...prev.testSummary, notes: val },
+                      }));
+                    }}
+                  />
+                </FormGroup>
               </div>
             )}
 
@@ -524,6 +567,81 @@ export default function VerificationModal({
                         />
                       </Col>
                     </Row>
+
+                    {/* Weapon, Constellation & Artifacts Input */}
+                    <div className="p-2 mb-2 rounded bg-black border border-secondary" style={{ fontSize: '0.78rem' }}>
+                      <div className="text-warning fw-bold mb-1" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                        ⚔️ Build, Weapon &amp; Artifacts Configuration
+                      </div>
+                      <Row className="g-2">
+                        <Col md={6}>
+                          <Label className="small text-muted">Weapon Name</Label>
+                          <Input
+                            type="text"
+                            bsSize="sm"
+                            value={c.weaponName || ''}
+                            placeholder="e.g. Peak Patrol Song, Surf's Up..."
+                            onChange={(e) => updateCharacter(idx, 'weaponName', e.target.value)}
+                          />
+                        </Col>
+                        <Col xs={6} md={3}>
+                          <Label className="small text-muted">Refinement (R)</Label>
+                          <Input
+                            type="select"
+                            bsSize="sm"
+                            value={c.weaponRefinement !== undefined ? c.weaponRefinement : 1}
+                            onChange={(e) => updateCharacter(idx, 'weaponRefinement', Number(e.target.value))}
+                          >
+                            {[1, 2, 3, 4, 5].map((r) => (
+                              <option key={r} value={r}>R{r}</option>
+                            ))}
+                          </Input>
+                        </Col>
+                        <Col xs={6} md={3}>
+                          <Label className="small text-muted">Constellation (C)</Label>
+                          <Input
+                            type="select"
+                            bsSize="sm"
+                            value={c.constellation !== undefined ? c.constellation : 0}
+                            onChange={(e) => updateCharacter(idx, 'constellation', Number(e.target.value))}
+                          >
+                            {[0, 1, 2, 3, 4, 5, 6].map((constell) => (
+                              <option key={constell} value={constell}>C{constell}</option>
+                            ))}
+                          </Input>
+                        </Col>
+                        <Col md={6}>
+                          <Label className="small text-muted">Artifacts</Label>
+                          <Input
+                            type="text"
+                            bsSize="sm"
+                            value={c.artifacts || ''}
+                            placeholder="e.g. 4pc Obsidian Codex, 4pc Scroll..."
+                            onChange={(e) => updateCharacter(idx, 'artifacts', e.target.value)}
+                          />
+                        </Col>
+                        <Col md={3}>
+                          <Label className="small text-muted">Custom Label (Optional)</Label>
+                          <Input
+                            type="text"
+                            bsSize="sm"
+                            value={c.buildLabel || ''}
+                            placeholder="e.g. C3 R1 or C2R1"
+                            onChange={(e) => updateCharacter(idx, 'buildLabel', e.target.value)}
+                          />
+                        </Col>
+                        <Col md={3}>
+                          <Label className="small text-muted">Build Notes</Label>
+                          <Input
+                            type="text"
+                            bsSize="sm"
+                            value={c.notes || ''}
+                            placeholder="e.g. DEF/Geo/Crit DMG"
+                            onChange={(e) => updateCharacter(idx, 'notes', e.target.value)}
+                          />
+                        </Col>
+                      </Row>
+                    </div>
 
                     <Row className="g-2">
                       <Col xs={6} md={3}>
@@ -597,10 +715,11 @@ export default function VerificationModal({
                   <table className="table table-bordered table-sm align-middle">
                     <thead className="table-light">
                       <tr>
-                        <th>#</th>
-                        <th>DPS</th>
-                        <th>Damage Dealt</th>
-                        <th>Duration (s)</th>
+                        <th style={{ width: '45px' }}>#</th>
+                        <th style={{ width: '90px' }}>DPS</th>
+                        <th style={{ width: '110px' }}>Damage Dealt</th>
+                        <th style={{ width: '95px' }}>Duration (s)</th>
+                        <th>Rotation Execution Notes / Combo</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -630,6 +749,15 @@ export default function VerificationModal({
                               bsSize="sm"
                               value={r.durationSeconds}
                               onChange={(e) => updateRotation(idx, 'durationSeconds', Number(e.target.value))}
+                            />
+                          </td>
+                          <td>
+                            <Input
+                              type="text"
+                              bsSize="sm"
+                              value={r.notes || ''}
+                              placeholder="e.g. Illuga E -> Linnea E Q -> Zibai burst"
+                              onChange={(e) => updateRotation(idx, 'notes', e.target.value)}
                             />
                           </td>
                         </tr>

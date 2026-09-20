@@ -69,14 +69,14 @@ export default function FilterToolbar({ filters, setFilters, onReset, totalCount
             </FormGroup>
           </Col>
 
-          {/* Character Search / Filter */}
+          {/* Character / Team Name Search / Filter */}
           <Col xs={6} md={3} lg={3}>
             <FormGroup className="m-0">
-              <Label className="small text-muted fw-bold mb-1">Party Member</Label>
+              <Label className="small text-muted fw-bold mb-1">Party / Team Name</Label>
               <Input
                 type="text"
                 bsSize="sm"
-                placeholder="e.g. Mavuika, Varesa..."
+                placeholder="e.g. Zibai Premium, Neuvillette..."
                 value={filters.character === 'all' ? '' : (filters.character || '')}
                 onChange={(e) => handleChange('character', e.target.value || 'all')}
               />
@@ -118,7 +118,8 @@ export default function FilterToolbar({ filters, setFilters, onReset, totalCount
                 <option value="dps_desc">Highest DPS First</option>
                 <option value="dps_asc">Lowest DPS First</option>
                 <option value="totalDamage_desc">Highest Total Damage</option>
-                <option value="createdAt_desc">Most Recent Scan</option>
+                <option value="createdAt_desc">Recently Added</option>
+                <option value="updatedAt_desc">Recently Modified</option>
               </Input>
             </FormGroup>
           </Col>

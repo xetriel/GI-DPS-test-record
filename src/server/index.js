@@ -6,7 +6,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { extractCombatTelemetryFromImage, REFERENCE_COMBAT_TELEMETRY } from './services/visionParser.js';
-import { getAllRuns, getRunById, commitRun, deleteRun, auditTelemetry } from './services/telemetryService.js';
+import { getAllRuns, getRunById, commitRun, updateRun, deleteRun, auditTelemetry } from './services/telemetryService.js';
 import { ExtractionSchema } from './schemas/extractionSchema.js';
 
 dotenv.config();
@@ -260,6 +260,7 @@ app.get('/api/telemetry/runs/:id', async (req, res) => {
         dps: r.dps,
         damageDealt: Number(r.damageDealt),
         durationSeconds: Number(r.durationSeconds),
+        notes: r.notes || '',
       })),
     });
 
@@ -267,6 +268,35 @@ app.get('/api/telemetry/runs/:id', async (req, res) => {
   } catch (error) {
     console.error('[API Run By Id Error]:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update Run (Manual Input of Weapons, Artifacts, Notes, Rotations)
+app.patch('/api/telemetry/runs/:id', async (req, res) => {
+  try {
+    const updated = await updateRun(req.params.id, req.body);
+    res.json({
+      success: true,
+      message: 'Run builds and notes updated successfully',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('[API Update Run Error]:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/telemetry/runs/:id', async (req, res) => {
+  try {
+    const updated = await updateRun(req.params.id, req.body);
+    res.json({
+      success: true,
+      message: 'Run builds and notes updated successfully',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('[API Update Run Error]:', error);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 

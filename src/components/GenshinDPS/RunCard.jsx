@@ -12,6 +12,29 @@ function formatDamageMillions(num) {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return 'N/A';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return (
+      d.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }) +
+      ' ' +
+      d.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    );
+  } catch {
+    return String(dateStr);
+  }
+}
+
 export default function RunCard({ run, onSelect, onDelete }) {
   if (!run) return null;
 
@@ -22,8 +45,8 @@ export default function RunCard({ run, onSelect, onDelete }) {
     >
       <div className="card-body p-3 p-md-4">
         {/* Top Badges Header */}
-        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <div className="d-flex align-items-center gap-2">
+        <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <span className="badge bg-warning text-dark fw-bold px-2 py-1 shadow-sm">
               👑 {run.testPreset || 'Abyss 12'}
             </span>
@@ -36,6 +59,21 @@ export default function RunCard({ run, onSelect, onDelete }) {
             {run.verified && (
               <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                 ✓ Verified
+              </span>
+            )}
+            {run.notes && (
+              <span
+                className="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 d-inline-flex align-items-center gap-1 shadow-sm"
+                title={run.notes}
+              >
+                <span className="position-relative d-inline-block me-1">
+                  🔔
+                  <span
+                    className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+                    style={{ width: '6px', height: '6px' }}
+                  />
+                </span>
+                Notes
               </span>
             )}
           </div>
@@ -59,6 +97,29 @@ export default function RunCard({ run, onSelect, onDelete }) {
                 ✕
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Team Name & Timestamps Header */}
+        <div
+          className="d-flex justify-content-between align-items-baseline mb-3 flex-wrap gap-2 pb-2"
+          style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}
+        >
+          <div className="d-flex flex-column">
+            <h5 className="fw-bold mb-1 text-body-emphasis" style={{ letterSpacing: '-0.02em' }}>
+              {run.teamName || (run.characters?.length ? `${run.characters[0].name} Team` : 'Party Setup')}
+            </h5>
+            <div className="d-flex align-items-center gap-2 text-muted flex-wrap" style={{ fontSize: '0.73rem' }}>
+              <span className="d-inline-flex align-items-center gap-1" title={`Imported / Added: ${run.createdAt}`}>
+                <span className="text-secondary fw-semibold">📅 Added:</span>
+                <span className="text-body-secondary font-monospace">{formatDateTime(run.createdAt)}</span>
+              </span>
+              <span className="text-secondary-subtle">•</span>
+              <span className="d-inline-flex align-items-center gap-1" title={`Last Modified: ${run.updatedAt || run.createdAt}`}>
+                <span className="text-secondary fw-semibold">✏️ Modified:</span>
+                <span className="text-body-secondary font-monospace">{formatDateTime(run.updatedAt || run.createdAt)}</span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -119,6 +180,28 @@ export default function RunCard({ run, onSelect, onDelete }) {
             </div>
           </div>
         </div>
+
+        {/* Notes Notification Display */}
+        {run.notes && (
+          <div
+            className="d-flex align-items-center gap-2 p-2 rounded mb-3"
+            style={{
+              background: 'rgba(56, 189, 248, 0.07)',
+              border: '1px solid rgba(56, 189, 248, 0.22)',
+              fontSize: '0.78rem',
+            }}
+          >
+            <span className="badge bg-info text-dark fw-bold px-1.5 py-0.5" style={{ fontSize: '0.68rem', letterSpacing: '0.4px' }}>
+              🔔 NOTE
+            </span>
+            <span className="text-truncate text-body-secondary flex-grow-1" title={run.notes}>
+              {run.notes}
+            </span>
+            <span className="text-primary fw-medium small" style={{ whiteSpace: 'nowrap' }}>
+              Inspect Note →
+            </span>
+          </div>
+        )}
 
         {/* Row 3: Elemental Damage Mini-Bar */}
         <div className="mb-2">

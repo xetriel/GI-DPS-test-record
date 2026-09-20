@@ -98,6 +98,19 @@ export async function commitRun(telemetry, imageUrl, gameVersion = '7.0') {
   return await res.json();
 }
 
+export async function updateRun(id, data) {
+  const res = await fetch(`${BASE_URL}/runs/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to update run (${res.status})`);
+  }
+  return await res.json();
+}
+
 export async function deleteRun(id) {
   const res = await fetch(`${BASE_URL}/runs/${id}`, {
     method: 'DELETE',
