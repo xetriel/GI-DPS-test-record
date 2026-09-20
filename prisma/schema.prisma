@@ -33,8 +33,12 @@ model DpsRun {
   gameVersion         String               @default("7.0") @map("game_version") @db.VarChar(16)
   imageUrl            String               @map("image_url") @db.VarChar(512)
   verified            Boolean              @default(false)
+  notes               String?              @db.Text
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  // User-defined team setup name (e.g. "Zibai Premium", "Neuvillette Hypercarry")
+  teamName            String?              @map("team_name") @db.VarChar(128)
 
   // Relations
   characters          RunCharacter[]
@@ -42,6 +46,7 @@ model DpsRun {
   elementalBreakdowns RunElementalShare[]
 
   @@index([testPreset])
+  @@index([teamName])
   @@index([gameVersion])
   @@index([dps])
   @@index([createdAt])
@@ -59,6 +64,14 @@ model RunCharacter {
   level            Int      @default(90)
   damageDealt      Decimal  @map("damage_dealt") @db.Decimal(14, 0)
   damagePercent    Int      @map("damage_percent") // e.g., 45, 50
+
+  // Constellation, Weapon & Artifacts
+  constellation    Int      @default(0) @db.TinyInt // 0 to 6 (C0-C6)
+  weaponName       String?  @map("weapon_name") @db.VarChar(128)
+  weaponRefinement Int      @default(1) @map("weapon_refinement") @db.TinyInt // 1 to 5 (R1-R5)
+  artifacts        String?  @db.VarChar(255) // e.g., "4pc Obsidian Codex"
+  buildLabel       String?  @map("build_label") @db.VarChar(32) // e.g., "C3 R1" or "C2R1"
+  notes            String?  @db.Text
 
   // Base & Calculated Attributes
   hp               Int
@@ -92,6 +105,7 @@ model RunRotation {
   dps             Int      // e.g., 161000
   damageDealt     Decimal  @map("damage_dealt") @db.Decimal(14, 0) // e.g., 3065636
   durationSeconds Decimal  @map("duration_seconds") @db.Decimal(6, 2) // e.g., 19.05
+  notes           String?  @db.Text
 
   run             DpsRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
 

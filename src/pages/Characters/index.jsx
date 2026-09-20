@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Row, Col, Card, CardBody, CardHeader, Spinner } from 'reactstrap';
 import { fetchRuns } from '../../services/api';
 import ElementalBadge from '../../components/GenshinDPS/ElementalBadge';
-import { getCharacterElement } from '../../components/GenshinDPS/TopContributorsBar';
+import { getCharacterElement } from '../../utils/characterUtils';
 
 function formatNumber(num) {
   return Number(num || 0).toLocaleString();

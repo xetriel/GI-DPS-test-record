@@ -11,7 +11,11 @@ export const ExtractionSchema = z.object({
     timeElapsedSeconds: z.number().describe('Time elapsed formatted as floating point number in seconds'),
     totalDamage: z.number().int().describe('Sum of total party damage dealt'),
     strongestHit: z.number().int().describe('Peak damage hit across all characters'),
+    teamName: z.string().optional().default('').describe('Optional team setup name (e.g. Zibai Premium, Neuvillette Hypercarry)'),
+    notes: z.string().optional().default('').describe('Optional run notes'),
   }),
+  teamName: z.string().optional().default('').describe('Custom user-defined team name (e.g. Zibai Premium, Neuvillette Hypercarry)'),
+  notes: z.string().optional().default('').describe('Run-level telemetry notes'),
   targetModifiers: z.object({
     targetName: z.string().describe('Name of the target dummy, e.g., Mitachurl'),
     targetLevel: z.number().int().default(100).describe('Target level'),
@@ -42,6 +46,12 @@ export const ExtractionSchema = z.object({
       level: z.number().int().default(90),
       damageDealt: z.number().int(),
       damagePercent: z.number().int(),
+      constellation: z.number().int().min(0).max(6).optional().default(0).describe('Constellation level 0-6 (e.g. C0-C6)'),
+      weaponName: z.string().optional().default('').describe('Equipped weapon name'),
+      weaponRefinement: z.number().int().min(1).max(5).optional().default(1).describe('Weapon refinement rank 1-5 (e.g. R1-R5)'),
+      artifacts: z.string().optional().default('').describe('Artifact set notation, e.g., 4pc Obsidian Codex'),
+      buildLabel: z.string().optional().default('').describe('Optional display label override, e.g., C3 R1 or C2R1'),
+      notes: z.string().optional().default('').describe('Character build notes'),
       stats: z.object({
         hp: z.number().int(),
         baseAtk: z.number().int(),
@@ -62,6 +72,7 @@ export const ExtractionSchema = z.object({
       dps: z.number().int().describe('Raw or scaled DPS in thousands/units'),
       damageDealt: z.number().int(),
       durationSeconds: z.number(),
+      notes: z.string().optional().default('').describe('Rotation combo or execution notes'),
     })
   ),
 });

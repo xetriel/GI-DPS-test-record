@@ -4,7 +4,7 @@ import FilterToolbar from '../../components/GenshinDPS/FilterToolbar';
 import RunCard from '../../components/GenshinDPS/RunCard';
 import RunDetailDrawer from '../../components/GenshinDPS/RunDetailDrawer';
 import VerificationModal from '../../components/GenshinDPS/VerificationModal';
-import { fetchRuns, scanScreenshot, commitRun, deleteRun } from '../../services/api';
+import { fetchRuns, scanScreenshot, commitRun, updateRun, deleteRun } from '../../services/api';
 
 export default function DpsRunsPage() {
   const [runs, setRuns] = useState([]);
@@ -100,6 +100,20 @@ export default function DpsRunsPage() {
       loadRuns();
     } catch (err) {
       alert('Failed to delete run: ' + err.message);
+    }
+  };
+
+  const handleUpdateRun = async (id, updatedData) => {
+    try {
+      const res = await updateRun(id, updatedData);
+      setSelectedRun(res.data);
+      setSuccessMessage('Run builds, weapons, artifacts and notes updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      loadRuns();
+      return res.data;
+    } catch (err) {
+      setError('Failed to update run: ' + (err.message || err));
+      throw err;
     }
   };
 
@@ -265,6 +279,7 @@ export default function DpsRunsPage() {
         run={selectedRun}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        onUpdateRun={handleUpdateRun}
       />
 
       {/* Human Verification & Correction Modal */}

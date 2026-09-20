@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { getCharacterElement } from './TopContributorsBar';
+import { useState } from 'react';
+import { getCharacterElement } from '../../utils/characterUtils';
 import { ELEMENT_CONFIG } from './ElementalBadge';
 
 export default function DualResistanceBadge({ resistances = {}, characters = [] }) {

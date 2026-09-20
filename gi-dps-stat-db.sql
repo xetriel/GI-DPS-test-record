@@ -41,14 +41,17 @@ CREATE TABLE `dps_runs` (
   `target_resistances`    JSON NOT NULL COMMENT '8-element resistance map {"pyro":10,"hydro":10,"electro":10,"cryo":10,"anemo":10,"geo":10,"dendro":10,"physical":10}',
   
   -- Versioning, Assets & Audit Verification
+  `team_name`             VARCHAR(128) NULL COMMENT 'User-defined team setup name (e.g. Zibai Premium, Neuvillette Hypercarry)',
   `gameVersion`           VARCHAR(16) NOT NULL DEFAULT '7.0' COMMENT 'Active patch version (e.g. 7.0)',
   `image_url`             VARCHAR(512) NOT NULL COMMENT 'Relative path or URI of original test screenshot',
   `verified`              TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 if human-verified, 0 if raw OCR/LLM extraction',
+  `notes`                 TEXT NULL COMMENT 'User combat telemetry notes and testing observations',
   `created_at`            DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at`            DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
   PRIMARY KEY (`id`),
   INDEX `idx_dps_runs_preset` (`test_preset`),
+  INDEX `idx_dps_runs_team_name` (`team_name`),
   INDEX `idx_dps_runs_game_version` (`gameVersion`),
   INDEX `idx_dps_runs_dps` (`dps`),
   INDEX `idx_dps_runs_created_at` (`created_at`)
@@ -66,6 +69,14 @@ CREATE TABLE `run_characters` (
   `level`             INT NOT NULL DEFAULT 90 COMMENT 'Character level',
   `damage_dealt`      DECIMAL(14, 0) NOT NULL COMMENT 'Damage dealt by character in this run',
   `damage_percent`    INT NOT NULL COMMENT 'Contribution percentage (0-100)',
+
+  -- Constellation, Weapon & Artifacts
+  `constellation`     TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Constellation level (0-6)',
+  `weapon_name`       VARCHAR(128) NULL COMMENT 'Equipped weapon name',
+  `weapon_refinement` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Weapon refinement rank (1-5)',
+  `artifacts`         VARCHAR(255) NULL COMMENT 'Artifact set name or combination (e.g. 4pc Obsidian Codex)',
+  `build_label`       VARCHAR(32) NULL COMMENT 'Display label (e.g. C3 R1 or C2R1)',
+  `notes`             TEXT NULL COMMENT 'Character-specific build notes',
   
   -- Attribute Sheet Metrics
   `hp`                INT NOT NULL COMMENT 'Total Max HP',
@@ -100,6 +111,7 @@ CREATE TABLE `run_rotations` (
   `dps`               INT NOT NULL COMMENT 'DPS achieved during this specific rotation cycle',
   `damage_dealt`      DECIMAL(14, 0) NOT NULL COMMENT 'Damage dealt during this cycle',
   `duration_seconds`  DECIMAL(6, 2) NOT NULL COMMENT 'Cycle duration in seconds (e.g. 19.05)',
+  `notes`             TEXT NULL COMMENT 'Rotation execution notes or combo description',
 
   PRIMARY KEY (`id`),
   INDEX `idx_run_rotations_run_cycle` (`run_id`, `rotation_number`),
@@ -144,6 +156,7 @@ INSERT INTO `dps_runs` (
   `target_name`,
   `target_level`,
   `target_resistances`,
+  `team_name`,
   `gameVersion`,
   `image_url`,
   `verified`,
@@ -161,6 +174,7 @@ INSERT INTO `dps_runs` (
   'Mitachurl',
   100,
   '{"pyro":10,"hydro":10,"electro":10,"cryo":10,"anemo":10,"geo":10,"dendro":10,"physical":10}',
+  'Varesa & Mavuika Overload',
   '7.0',
   '/sample-runs/sample-dps-run.png',
   1,
@@ -220,7 +234,7 @@ COMMIT;
 -- VERIFICATION QUERIES
 -- =====================================================================
 -- 1. Check loaded runs
-SELECT id, test_preset, dps, time_elapsed_seconds, total_damage, target_name, gameVersion, verified
+SELECT id, team_name, test_preset, dps, time_elapsed_seconds, total_damage, target_name, gameVersion, verified
 FROM `dps_runs`;
 
 -- 2. Party members & damage contribution

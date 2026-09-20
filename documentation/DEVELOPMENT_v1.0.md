@@ -1,7 +1,11 @@
-# Development Guide: GenshinDPS — Combat Analytics & Telemetry Archive
+# Development Guide: GenshinDPS — Combat Analytics & Telemetry Archive (v1.0)
 
-**Version:** 1.0.0  
+**Version:** 1.0.0 (Archival Baseline)  
 **Target Environment:** Node.js 22+ (LTS) · React 19.2 · Vite 8 · MySQL 8.0+ / Prisma ORM
+
+> [!NOTE]
+> This document is the archival development guide for **Version 1.0.0** (Initial MVP Baseline).  
+> For the current development guide covering Version 1.1.0 (combat metadata, scoped Graphify architecture, and route-aligned CI), refer to [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ---
 
@@ -17,7 +21,7 @@
 |Bootstrap 5.3 + Sass Theme|Multimodal AI Telemetry Engine|
 |ApexCharts, Chart.js, Recharts|(Gemini 2.5 Flash / GPT-4o / OCR)|
 
-### Core Features
+### Core Features (v1.0 Baseline)
 - **Run Explorer (`/runs`)**: Filter and inspect logged benchmark combat runs by DPS, preset, enemy type, and verification status.
 - **Combat Analytics Dashboard (`/dashboard`)**: Rotation timeline cadence, DPS trajectory, party damage contribution (%), and elemental damage share distribution.
 - **Character Attribute Cards (`/characters`)**: In-depth character sheets tracking Base ATK, Total ATK, DEF, HP, Crit Rate, Crit DMG, ER, EM, and elemental damage bonuses.
