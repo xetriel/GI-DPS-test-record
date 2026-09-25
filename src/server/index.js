@@ -6,7 +6,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { extractCombatTelemetryFromImage, REFERENCE_COMBAT_TELEMETRY } from './services/visionParser.js';
-import { getAllRuns, getRunById, commitRun, updateRun, deleteRun, auditTelemetry } from './services/telemetryService.js';
+import { getAllRuns, getRunById, commitRun, updateRun, deleteRun, auditTelemetry, batchImportRuns, exportDatabaseRuns } from './services/telemetryService.js';
 import { ExtractionSchema } from './schemas/extractionSchema.js';
 
 dotenv.config();
@@ -307,6 +307,40 @@ app.delete('/api/telemetry/runs/:id', async (req, res) => {
     res.json({ success });
   } catch (error) {
     console.error('[API Delete Run Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Batch Import Runs (Database Sharing)
+app.post('/api/telemetry/import', async (req, res) => {
+  try {
+    const { runs, mode } = req.body;
+    if (!runs || !Array.isArray(runs)) {
+      return res.status(400).json({ success: false, error: 'Missing or invalid runs array in payload' });
+    }
+    const result = await batchImportRuns(runs, mode || 'append');
+    res.json(result);
+  } catch (error) {
+    console.error('[API Import Error]:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Export Runs (Database Sharing)
+app.get('/api/telemetry/export', async (req, res) => {
+  try {
+    const { ids } = req.query;
+    const runs = await exportDatabaseRuns({ ids });
+    res.json({
+      success: true,
+      app: 'GenshinDPS',
+      exportedAt: new Date().toISOString(),
+      gameVersion: '7.0',
+      runCount: runs.length,
+      runs,
+    });
+  } catch (error) {
+    console.error('[API Export Error]:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -4,6 +4,8 @@ import FilterToolbar from '../../components/GenshinDPS/FilterToolbar';
 import RunCard from '../../components/GenshinDPS/RunCard';
 import RunDetailDrawer from '../../components/GenshinDPS/RunDetailDrawer';
 import VerificationModal from '../../components/GenshinDPS/VerificationModal';
+import DatabaseImportModal from '../../components/GenshinDPS/DatabaseImportModal';
+import DatabaseExportModal from '../../components/GenshinDPS/DatabaseExportModal';
 import { fetchRuns, scanScreenshot, commitRun, updateRun, deleteRun } from '../../services/api';
 
 export default function DpsRunsPage() {
@@ -37,6 +39,10 @@ export default function DpsRunsPage() {
   const [_scanStatusText, setScanStatusText] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
+
+  // Database Sharing modals
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const loadRuns = () => {
     setLoading(true);
@@ -175,6 +181,14 @@ export default function DpsRunsPage() {
     }
   };
 
+  const handleImportSuccess = ({ count, mode }) => {
+    setSuccessMessage(
+      `✓ Successfully imported ${count} combat run(s) via ${mode === 'replace' ? 'database replacement' : 'append & merge'}!`
+    );
+    setTimeout(() => setSuccessMessage(null), 5000);
+    loadRuns();
+  };
+
   return (
     <div className="container-fluid p-3 p-md-4">
       {/* Page Title & Action Bar */}
@@ -200,6 +214,22 @@ export default function DpsRunsPage() {
           />
 
           <Button
+            color="outline-secondary"
+            className="fw-bold shadow-sm d-flex align-items-center gap-1"
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            <span>📥</span> Import DB
+          </Button>
+
+          <Button
+            color="outline-success"
+            className="fw-bold shadow-sm d-flex align-items-center gap-1"
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            <span>📤</span> Export DB
+          </Button>
+
+          <Button
             color="outline-primary"
             className="fw-bold shadow-sm d-flex align-items-center gap-2"
             onClick={handleScanSample}
@@ -214,7 +244,7 @@ export default function DpsRunsPage() {
             onClick={() => document.getElementById('quick-file-upload')?.click()}
             disabled={isScanning}
           >
-            {isScanning ? <Spinner size="sm" /> : '📤'} Upload New Screenshot
+            {isScanning ? <Spinner size="sm" /> : '📷'} Upload Screenshot
           </Button>
         </div>
       </div>
@@ -292,6 +322,21 @@ export default function DpsRunsPage() {
         isSubmitting={isCommitting}
         engine={scanEngine}
         rawTextSnippet={rawTextSnippet}
+      />
+
+      {/* Database Import / Upload Modal */}
+      <DatabaseImportModal
+        isOpen={isImportModalOpen}
+        toggle={() => setIsImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Database Export / Download Modal */}
+      <DatabaseExportModal
+        isOpen={isExportModalOpen}
+        toggle={() => setIsExportModalOpen(false)}
+        allRuns={runs}
+        filteredRuns={runs}
       />
     </div>
   );

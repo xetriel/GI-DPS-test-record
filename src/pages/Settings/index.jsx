@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardBody, CardHeader, Row, Col, FormGroup, Label, Input, Button, Alert, Spinner } from 'reactstrap';
-import { checkHealth, fetchConfig, saveConfig } from '../../services/api';
+import { checkHealth, fetchConfig, saveConfig, fetchRuns } from '../../services/api';
+import DatabaseImportModal from '../../components/GenshinDPS/DatabaseImportModal';
+import DatabaseExportModal from '../../components/GenshinDPS/DatabaseExportModal';
 
 export default function SettingsPage() {
   const [health, setHealth] = useState(null);
@@ -10,6 +12,9 @@ export default function SettingsPage() {
   const [gameVersion, setGameVersion] = useState('7.0');
   const [savedMessage, setSavedMessage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [runs, setRuns] = useState([]);
 
   const loadData = () => {
     return Promise.all([checkHealth(), fetchConfig()])
@@ -111,6 +116,31 @@ export default function SettingsPage() {
                   Configurable in <code>.env</code>. The backend uses atomic transactions across <code>DpsRun</code>, <code>RunCharacter</code>, <code>RunRotation</code>, and <code>RunElementalShare</code>.
                 </small>
               </FormGroup>
+
+              <div className="mt-3 pt-3 border-top">
+                <Label className="small text-muted fw-bold d-block mb-2">Database Backup &amp; Sharing</Label>
+                <div className="d-flex flex-wrap gap-2">
+                  <Button
+                    color="outline-secondary"
+                    size="sm"
+                    className="fw-bold shadow-sm d-flex align-items-center gap-1"
+                    onClick={() => setIsImportOpen(true)}
+                  >
+                    <span>📥</span> Import / Restore Archive...
+                  </Button>
+                  <Button
+                    color="outline-success"
+                    size="sm"
+                    className="fw-bold shadow-sm d-flex align-items-center gap-1"
+                    onClick={() => {
+                      fetchRuns().then((res) => setRuns(res.data || []));
+                      setIsExportOpen(true);
+                    }}
+                  >
+                    <span>📤</span> Export Archive...
+                  </Button>
+                </div>
+              </div>
             </CardBody>
           </Card>
         </Col>
@@ -208,6 +238,23 @@ export default function SettingsPage() {
           </Card>
         </Col>
       </Row>
+
+      {/* Database Sharing Modals */}
+      <DatabaseImportModal
+        isOpen={isImportOpen}
+        toggle={() => setIsImportOpen(false)}
+        onImportSuccess={({ count, mode }) => {
+          setSavedMessage(`✓ Successfully imported ${count} run(s) via ${mode === 'replace' ? 'database replacement' : 'append & merge'}!`);
+          setTimeout(() => setSavedMessage(null), 5000);
+        }}
+      />
+
+      <DatabaseExportModal
+        isOpen={isExportOpen}
+        toggle={() => setIsExportOpen(false)}
+        allRuns={runs}
+        filteredRuns={runs}
+      />
     </div>
   );
 }

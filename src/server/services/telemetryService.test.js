@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ExtractionSchema } from '../schemas/extractionSchema.js';
-import { auditTelemetry, commitRun, updateRun, getAllRuns } from './telemetryService.js';
+import { auditTelemetry, commitRun, updateRun, getAllRuns, batchImportRuns, exportDatabaseRuns } from './telemetryService.js';
 import { REFERENCE_COMBAT_TELEMETRY } from './visionParser.js';
 import { getBuildLabels } from '../../utils/characterUtils.js';
 
@@ -199,5 +199,69 @@ describe('GenshinDPS Telemetry & Extraction Suite', () => {
     const { data: searchResults } = await getAllRuns({ character: 'Zibai Hypercarry 2.0' });
     expect(searchResults.some((r) => r.id === run1.id)).toBe(true);
   });
+
+  it('handles batchImportRuns and exportDatabaseRuns for database sharing', async () => {
+    // 1. Export current runs
+    const initialRuns = await exportDatabaseRuns();
+    expect(initialRuns.length).toBeGreaterThan(0);
+
+    // 2. Prepare sample imported run
+    const importedRun = {
+      id: 'shared-run-uuid-999',
+      teamName: 'Mavuika Hypercarry Shared',
+      testPreset: 'Abyss 12',
+      dps: 620000,
+      timeElapsedSeconds: 110,
+      totalDamage: 68200000,
+      strongestHit: 1850000,
+      characters: [
+        {
+          name: 'Mavuika',
+          slotOrder: 1,
+          level: 90,
+          constellation: 2,
+          weaponName: 'A Thousand Blazing Suns',
+          weaponRefinement: 1,
+          buildLabel: 'C2 R1',
+          damagePercent: 65,
+          damageDealt: 44330000,
+        },
+      ],
+      rotations: [{ rotationNumber: 1, dps: 620000, damageDealt: 20000000, durationSeconds: 32 }],
+    };
+
+    // 3. Test append mode
+    const appendResult = await batchImportRuns([importedRun], 'append');
+    expect(appendResult.success).toBe(true);
+    expect(appendResult.importedCount).toBe(1);
+    expect(appendResult.totalRuns).toBe(initialRuns.length + 1);
+
+    // Verify imported run exists
+    const runsAfterAppend = await exportDatabaseRuns();
+    const foundAppended = runsAfterAppend.find((r) => r.teamName === 'Mavuika Hypercarry Shared');
+    expect(foundAppended).toBeDefined();
+    expect(foundAppended.dps).toBe(620000);
+
+    // 4. Test conflict handling: append same run again -> receives fresh unique UUID
+    const duplicateAppendResult = await batchImportRuns([importedRun], 'append');
+    expect(duplicateAppendResult.success).toBe(true);
+    expect(duplicateAppendResult.runs[0].id).not.toBe(foundAppended.id);
+
+    // 5. Test export with specific IDs filter
+    const filteredExport = await exportDatabaseRuns({ ids: [foundAppended.id] });
+    expect(filteredExport).toHaveLength(1);
+    expect(filteredExport[0].id).toBe(foundAppended.id);
+
+    // 6. Test replace mode
+    const replaceResult = await batchImportRuns([importedRun], 'replace');
+    expect(replaceResult.success).toBe(true);
+    expect(replaceResult.importedCount).toBe(1);
+    expect(replaceResult.totalRuns).toBe(1);
+
+    const runsAfterReplace = await exportDatabaseRuns();
+    expect(runsAfterReplace).toHaveLength(1);
+    expect(runsAfterReplace[0].teamName).toBe('Mavuika Hypercarry Shared');
+  });
 });
+
 

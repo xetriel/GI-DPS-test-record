@@ -721,3 +721,136 @@ export async function deleteRun(id) {
   inMemoryRuns = inMemoryRuns.filter((r) => r.id !== id);
   return inMemoryRuns.length < initialLength;
 }
+
+/**
+ * Batch import runs with conflict resolution (append/merge or replace)
+ */
+export async function batchImportRuns(runsToImport = [], mode = 'append') {
+  if (!Array.isArray(runsToImport)) {
+    throw new Error('Import payload must be an array of runs');
+  }
+
+  if (runsToImport.length === 0) {
+    throw new Error('No runs to import');
+  }
+
+  const existingIds = new Set(inMemoryRuns.map((r) => r.id));
+  const sanitizedList = runsToImport.map((r, idx) => {
+    let runId = r.id;
+    // In append mode, if ID already exists or is missing, assign a fresh UUID
+    if (!runId || (mode === 'append' && existingIds.has(runId))) {
+      runId = crypto.randomUUID();
+    } else {
+      existingIds.add(runId);
+    }
+
+    const characters = Array.isArray(r.characters)
+      ? r.characters.map((c, cIdx) => ({
+          id: c.id || Date.now() + idx * 100 + cIdx,
+          runId,
+          slotOrder: c.slotOrder || cIdx + 1,
+          name: c.name || `Character ${cIdx + 1}`,
+          level: Number(c.level) || 90,
+          damageDealt: Number(c.damageDealt) || 0,
+          damagePercent: Number(c.damagePercent) || 0,
+          constellation: Number(c.constellation ?? 0),
+          weaponName: c.weaponName || '',
+          weaponRefinement: Number(c.weaponRefinement ?? 1),
+          artifacts: c.artifacts || '',
+          buildLabel: c.buildLabel || '',
+          notes: c.notes || '',
+          hp: Number(c.hp ?? 20000),
+          baseAtk: Number(c.baseAtk ?? 700),
+          atk: Number(c.atk ?? 1500),
+          baseDef: Number(c.baseDef ?? 800),
+          def: Number(c.def ?? 800),
+          critRate: Number(c.critRate ?? 60),
+          critDamage: Number(c.critDamage ?? 180),
+          energyRecharge: Number(c.energyRecharge ?? 120),
+          elementalMastery: Number(c.elementalMastery ?? 0),
+          damageBonuses: c.damageBonuses || {},
+        }))
+      : [];
+
+    const rotations = Array.isArray(r.rotations)
+      ? r.rotations.map((rot, rotIdx) => ({
+          id: rot.id || Date.now() + idx * 100 + 10 + rotIdx,
+          runId,
+          rotationNumber: Number(rot.rotationNumber) || rotIdx + 1,
+          dps: Number(rot.dps) || 0,
+          damageDealt: Number(rot.damageDealt) || 0,
+          durationSeconds: Number(rot.durationSeconds) || 20,
+          notes: rot.notes || '',
+        }))
+      : [];
+
+    const elementalBreakdowns = Array.isArray(r.elementalBreakdowns)
+      ? r.elementalBreakdowns.map((elem, eIdx) => ({
+          id: elem.id || Date.now() + idx * 100 + 50 + eIdx,
+          runId,
+          element: elem.element || 'Physical',
+          percentage: Number(elem.percentage) || 0,
+        }))
+      : [];
+
+    return {
+      id: runId,
+      teamName: r.teamName || (characters[0]?.name ? `${characters[0].name} Team` : 'Custom Party'),
+      stageGuid: r.stageGuid || null,
+      uid: r.uid || null,
+      testPreset: r.testPreset || 'Abyss 12',
+      dps: Number(r.dps) || 0,
+      timeElapsedSeconds: Number(r.timeElapsedSeconds) || 120,
+      totalDamage: Number(r.totalDamage) || 0,
+      strongestHit: Number(r.strongestHit) || 0,
+      targetName: r.targetName || 'Target Dummy',
+      targetLevel: Number(r.targetLevel) || 100,
+      targetResistances: r.targetResistances || {
+        pyro: 10, hydro: 10, electro: 10, cryo: 10, anemo: 10, geo: 10, dendro: 10, physical: 10
+      },
+      gameVersion: r.gameVersion || '7.0',
+      imageUrl: r.imageUrl || '/sample-runs/sample-dps-run.png',
+      verified: Boolean(r.verified ?? true),
+      notes: r.notes || '',
+      createdAt: r.createdAt || new Date().toISOString(),
+      updatedAt: r.updatedAt || new Date().toISOString(),
+      characters,
+      rotations,
+      elementalBreakdowns,
+    };
+  });
+
+  if (mode === 'replace') {
+    inMemoryRuns = sanitizedList;
+  } else {
+    // Append mode: prepend incoming runs so they appear at the top of the feed
+    inMemoryRuns = [...sanitizedList, ...inMemoryRuns];
+  }
+
+  return {
+    success: true,
+    mode,
+    importedCount: sanitizedList.length,
+    totalRuns: inMemoryRuns.length,
+    runs: sanitizedList,
+  };
+}
+
+/**
+ * Export all runs or filtered runs
+ */
+export async function exportDatabaseRuns(params = {}) {
+  const { ids } = params;
+  let runs = [...inMemoryRuns];
+
+  if (ids && Array.isArray(ids) && ids.length > 0) {
+    const idSet = new Set(ids);
+    runs = runs.filter((r) => idSet.has(r.id));
+  } else if (typeof ids === 'string' && ids.trim().length > 0) {
+    const idSet = new Set(ids.split(',').map((id) => id.trim()));
+    runs = runs.filter((r) => idSet.has(r.id));
+  }
+
+  return runs;
+}
+

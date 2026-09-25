@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Chart from 'react-apexcharts';
 import ElementalBadge from './ElementalBadge';
 import { getCharacterElement, getBuildLabels } from '../../utils/characterUtils';
 import EditRunModal from './EditRunModal';
+import DatabaseExportModal from './DatabaseExportModal';
 
 function formatNumber(num) {
   return Number(num || 0).toLocaleString();
@@ -45,6 +47,7 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen || !run) return null;
@@ -164,21 +167,21 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
     setPan({ x: 0, y: 0 });
   };
 
-  return (
+  const drawerContent = (
     <>
       <div className="slide-over-backdrop" onClick={onClose} />
-      <div className="slide-over-panel shadow-2xl">
+      <div className="slide-over-panel shadow-2xl" data-bs-theme="dark">
         {/* Drawer Header */}
         <div
-          className="p-3 p-md-4 border-bottom d-flex justify-content-between align-items-center"
-          style={{ background: '#0e1222', borderBottomColor: 'rgba(255, 255, 255, 0.08)' }}
+          className="p-3 px-4 border-bottom d-flex justify-content-between align-items-center gap-3 flex-wrap flex-sm-nowrap"
+          style={{ background: '#0e1222', borderBottomColor: 'rgba(255, 255, 255, 0.08)', position: 'relative', zIndex: 10 }}
         >
           <div>
             <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
               <span className="badge bg-warning text-dark fw-bold">
                 {run.testPreset}
               </span>
-              <span className="badge bg-dark text-white">
+              <span className="badge bg-dark text-white border border-secondary">
                 v{run.gameVersion}
               </span>
               <h5 className="m-0 fw-bold text-white">
@@ -186,9 +189,9 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
               </h5>
             </div>
             <div className="text-muted d-flex align-items-center gap-2 flex-wrap" style={{ fontSize: '0.78rem' }}>
-              <span>Run ID: <span className="font-monospace">{run.id}</span></span>
+              <span>Run ID: <span className="font-monospace text-light">{run.id}</span></span>
               <span>•</span>
-              <span>Target: {run.targetName} Lv.{run.targetLevel}</span>
+              <span>Target: <span className="text-light">{run.targetName} Lv.{run.targetLevel}</span></span>
               <span>•</span>
               <span>📅 Added: <span className="font-monospace text-body-secondary">{formatDateTime(run.createdAt)}</span></span>
               <span>•</span>
@@ -196,7 +199,16 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
             </div>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-shrink-0 ms-auto ms-sm-0">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-success d-flex align-items-center gap-1 shadow-sm"
+              onClick={() => setIsExportOpen(true)}
+              title="Share or export this combat run as JSON or CSV"
+            >
+              <span>📤</span>
+              <span className="d-none d-sm-inline">Share Run</span>
+            </button>
             <button
               type="button"
               className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 shadow-sm"
@@ -208,7 +220,7 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
             </button>
             <button
               type="button"
-              className="btn-close"
+              className="btn-close btn-close-white"
               aria-label="Close"
               onClick={onClose}
             />
@@ -640,6 +652,16 @@ export default function RunDetailDrawer({ run, isOpen, onClose, onUpdateRun }) {
         onSave={handleSaveEdit}
         isSaving={isSaving}
       />
+
+      {/* Share / Export Single Run Modal */}
+      <DatabaseExportModal
+        isOpen={isExportOpen}
+        toggle={() => setIsExportOpen(false)}
+        singleRun={run}
+        allRuns={[run]}
+      />
     </>
   );
+
+  return typeof document !== 'undefined' ? createPortal(drawerContent, document.body) : drawerContent;
 }

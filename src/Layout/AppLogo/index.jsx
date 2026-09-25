@@ -21,18 +21,20 @@ export default function HeaderLogo() {
   return (
     <Fragment>
       <div className="app-header__logo">
-        <Link to="/runs" className="text-decoration-none d-flex align-items-center gap-2">
+        <Link to="/runs" className="text-decoration-none d-flex align-items-center gap-2" title="GenshinDPS Combat Telemetry Archive">
           <span className="fs-4">⚡</span>
-          <span className={cx('fw-bold fs-5 brand-title', { 'text-white': isDark, 'text-dark': !isDark })} style={{ letterSpacing: '-0.3px' }}>
-            Genshin<span className="text-primary">DPS</span>
-          </span>
+          {!enableClosedSidebar && (
+            <span className={cx('fw-bold fs-5 brand-title', { 'text-white': isDark, 'text-dark': !isDark })} style={{ letterSpacing: '-0.3px' }}>
+              Genshin<span className="text-primary">DPS</span>
+            </span>
+          )}
         </Link>
         <div className="header__pane ms-auto">
           <div onClick={toggleEnableClosedSidebar}>
             <Hamburger
               toggled={enableClosedSidebar}
               toggle={toggleEnableClosedSidebar}
-              size={24}
+              size={22}
               color={isDark ? '#cbd5e1' : '#6c757d'}
             />
           </div>

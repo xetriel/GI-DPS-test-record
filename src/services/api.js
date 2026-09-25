@@ -120,3 +120,29 @@ export async function deleteRun(id) {
   }
   return await res.json();
 }
+
+export async function importDatabaseRuns(runs, mode = 'append') {
+  const res = await fetch(`${BASE_URL}/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ runs, mode }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Database import failed (${res.status})`);
+  }
+  return await res.json();
+}
+
+export async function exportDatabaseRuns(params = {}) {
+  const query = new URLSearchParams();
+  if (params.ids) {
+    query.append('ids', Array.isArray(params.ids) ? params.ids.join(',') : params.ids);
+  }
+  const res = await fetch(`${BASE_URL}/export?${query.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Database export failed (${res.status})`);
+  }
+  return await res.json();
+}
+
